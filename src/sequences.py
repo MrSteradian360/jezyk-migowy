@@ -7,7 +7,9 @@ from typing import Iterable
 import cv2
 import mediapipe as mp
 import re
+import seaborn as sns
 hands = mp.solutions.hands
+drawing = mp.solutions.drawing_utils
 
 
 class KeypointsVectorToLetters(Sequence):
@@ -60,10 +62,10 @@ class KeypointsVectorToLetters(Sequence):
             keypoints = []
             for hand_landmarks in results.multi_hand_landmarks:
                 for lm in hand_landmarks.landmark:
-                    keypoints.append([lm.x, lm.y, lm.z])
+                    keypoints.append([lm.x, lm.y])
             return np.array(keypoints).flatten()
         else:
-            return np.zeros(3 * len(hands.HandLandmark)) * -1
+            return np.zeros(2 * len(hands.HandLandmark)) * -1
 
     def __len__(self):
         """Number of batch in the Sequence.
@@ -72,3 +74,27 @@ class KeypointsVectorToLetters(Sequence):
             The number of batches in the Sequence.
         """
         return len(self.paths) // self.batch_size
+
+
+class KeypointsImageToLetters(KeypointsVectorToLetters):
+
+    def __init__(self, paths: Iterable[Path], batch_size: int, labels: list[str] = None) -> None:
+        super(KeypointsImageToLetters, self).__init__(paths, batch_size, labels)
+        pallet = sns.color_palette("hls", len(hands.HandLandmark))
+        self._landmark_colors = {
+            l: c for l, c in zip(hands.HandLandmark, pallet)
+        }
+
+    def _extract_keypoints(self, filename: Path):
+        image = cv2.imread(str(filename))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        keypoints_image = np.zeros((image.shape[0], image.shape[1], 3))
+        results = self.hands.process(image)
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                drawing.draw_landmarks(
+                    keypoints_image, hand_landmarks, hands.HAND_CONNECTIONS,
+                    {l: drawing.DrawingSpec(
+                        circle_radius=5, color=self._landmark_colors[l]) for l in hands.HandLandmark}
+                )
+        return keypoints_image
