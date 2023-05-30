@@ -52,6 +52,16 @@ class KeypointsVectorToLetters(Sequence):
         return filename.stem[:first_digit]
 
     def _extract_keypoints(self, filename: Path):
+        keypoints_filename = filename.with_stem(f'{filename.stem}_keypoints')
+        if not keypoints_filename.exists():
+            image = self._create_keypoints_image(filename)
+            cv2.imwrite(keypoints_filename, image)
+        keypoints = cv2.imread(str(keypoints_filename))
+        keypoints = cv2.cvtColor(keypoints, cv2.COLOR_BGR2GRAY)
+        return keypoints
+
+    
+    def _create_keypoints_image(self, filename: Path):
         image = cv2.imread(str(filename))
         assert image is not None, f"Image should not be none: {filename}"
 
@@ -66,6 +76,7 @@ class KeypointsVectorToLetters(Sequence):
             return np.array(keypoints).flatten()
         else:
             return np.zeros(2 * len(hands.HandLandmark)) * -1
+
 
     def __len__(self):
         """Number of batch in the Sequence.
