@@ -52,16 +52,6 @@ class KeypointsVectorToLetters(Sequence):
         return filename.stem[:first_digit]
 
     def _extract_keypoints(self, filename: Path):
-        keypoints_filename = filename.with_stem(f'{filename.stem}_keypoints')
-        if not keypoints_filename.exists():
-            image = self._create_keypoints_image(filename)
-            cv2.imwrite(keypoints_filename, image)
-        keypoints = cv2.imread(str(keypoints_filename))
-        keypoints = cv2.cvtColor(keypoints, cv2.COLOR_BGR2GRAY)
-        return keypoints
-
-    
-    def _create_keypoints_image(self, filename: Path):
         image = cv2.imread(str(filename))
         assert image is not None, f"Image should not be none: {filename}"
 
@@ -77,7 +67,6 @@ class KeypointsVectorToLetters(Sequence):
         else:
             return np.zeros(2 * len(hands.HandLandmark)) * -1
 
-
     def __len__(self):
         """Number of batch in the Sequence.
 
@@ -90,13 +79,23 @@ class KeypointsVectorToLetters(Sequence):
 class KeypointsImageToLetters(KeypointsVectorToLetters):
 
     def __init__(self, paths: Iterable[Path], batch_size: int, labels: list[str] = None) -> None:
-        super(KeypointsImageToLetters, self).__init__(paths, batch_size, labels)
+        super(KeypointsImageToLetters, self).__init__(
+            paths, batch_size, labels)
         pallet = sns.color_palette("hls", len(hands.HandLandmark))
         self._landmark_colors = {
             l: c for l, c in zip(hands.HandLandmark, pallet)
         }
 
     def _extract_keypoints(self, filename: Path):
+        keypoints_img_path = filename.with_stem(f'{filename.stem}_keypoints')
+        if not keypoints_img_path.exists():
+            img = self._create_keypoints(filename)
+            cv2.imwrite(str(keypoints_img_path), img)
+        else:
+            img = cv2.imread(str(keypoints_img_path))
+        return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    def _create_keypoints(self, filename: Path):
         image = cv2.imread(str(filename))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         keypoints_image = np.zeros((image.shape[0], image.shape[1], 3))
