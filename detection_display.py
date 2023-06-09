@@ -66,15 +66,12 @@ with mp_hands.Hands(
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # displaying image with added keypoints and recognized letter or digit
-        cv2.imshow('MediaPipe Hands', image)
+        cv2.imshow('ASL Recognition', image)
 
-        # quit the loop by pressing 'q' keyboard
+        # close window by clicking on GUI close button [x]
         key = cv2.waitKey(1)
-        if key == ord('q') or key == 27:
-            cv2.destroyAllWindows()
+        if not cv2.getWindowProperty('ASL Recognition', cv2.WND_PROP_VISIBLE):
             break
 
 cap.release()
-
-
 
